@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Water Movement</title>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.2);
+            --ice-blue: #03a9f4;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden; color: white;
+        }
+
+        .full-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), 
+                        url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover; background-position: center; z-index: -1;
+        }
+
+        /* --- PAGE 1: LANDING --- */
+        #landing-page {
+            height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
+
+        .meditation-circle {
+            width: 150px; height: 150px; border: 4px solid white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 30px auto; font-size: 1.5rem; background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px); cursor: pointer; animation: breathe-normal 8s infinite ease-in-out;
+        }
+        @keyframes breathe-normal { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+        .anon-trigger { margin-top: 20px; font-size: 0.85rem; opacity: 0.6; cursor: pointer; text-decoration: underline; }
+        #anon-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 500; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .anon-field {
+            width: 80%; max-width: 500px; background: rgba(255,255,255,0.1);
+            border: 1px solid white; border-radius: 10px; color: white; padding: 12px;
+            font-family: inherit; font-size: 0.95rem; outline: none; margin-bottom: 15px;
+        }
+        #anon-modal textarea { height: 120px; resize: none; }
+        .anon-send { background: white; color: black; border: none; padding: 10px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+
+        /* --- PAGE 2: TRACKER --- */
+        #tracker-page {
+            display: none; height: 100%; position: relative;
+            align-items: center; justify-content: center; opacity: 0; transition: 1s;
+        }
+
+        #quote-container {
+            position: absolute; top: 6vh; width: 80%; text-align: center;
+            font-style: italic; font-size: 1.1rem; text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        #wall-container {
+            position: absolute; top: 12vh; right: 20px;
+            width: 220px; height: 70vh; display: flex; flex-direction: column;
+        }
+        #gratitude-wall {
+            flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+            padding: 10px; pointer-events: auto;
+        }
+        .post-it {
+            background: #fff9c4; color: #333; padding: 12px;
+            width: 180px; min-height: 80px; transform: rotate(1deg);
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.2); font-family: 'Comic Sans MS', cursive, sans-serif;
+            border-bottom-right-radius: 15px; font-size: 0.85rem; flex-shrink: 0;
+            animation: stick-on 0.5s ease-out;
+        }
+        @keyframes stick-on { from { transform: scale(0) rotate(-10deg); opacity: 0; } to { transform: scale(1) rotate(1deg); opacity: 1; } }
+
+        .sidebar-dial {
+            position: absolute; left: 20px; bottom: 20px;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(5px);
+            padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);
+            display: flex; flex-direction: column; align-items: center;
+            transition: opacity 0.3s; opacity: 0.5; z-index: 10;
+        }
+        #dayDial { background: transparent; border: none; border-bottom: 1px solid white; color: white; font-size: 1.2rem; width: 50px; text-align: center; outline: none; }
+
+        .bubble {
+            position: absolute; top: -110px; left: 50%; transform: translateX(-50%);
+            background: white; color: #333; padding: 15px 20px; border-radius: 25px;
+            font-size: 1rem; font-weight: bold; width: 240px; text-align: center; 
+            display: none; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .bubble::after { content: ''; position: absolute; bottom: -10px; left: 50%; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid white; transform: translateX(-50%); }
+
+        .mascot-btn { background: none; border: none; padding: 0; cursor: pointer; position: relative; }
+        .cup { width: 160px; height: 200px; border: 6px solid white; border-radius: 10px 10px 60px 60px; overflow: hidden; position: relative; background: rgba(255,255,255,0.1); }
+        .water-fill { position: absolute; bottom: 0; width: 100%; height: 75%; background: var(--ice-blue); transition: 1.5s; }
+        .eye { width: 24px; height: 24px; background: white; border-radius: 5px; position: absolute; top: 60px; }
+        .eye.l { left: 40px; } .eye.r { right: 40px; }
+        .eye::after { content: ''; position: absolute; width: 6px; height: 6px; background: #333; top: 5px; left: 5px; }
+        .eyes-closed::after { display: none; }
+        .eyes-closed { height: 4px !important; top: 75px !important; border-radius: 2px !important; }
+        .mouth { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); width: 30px; height: 3px; background: white; border-radius: 2px; transition: 0.5s; }
+        .smile-active { width: 45px; height: 22px; border: 4px solid white; border-radius: 0 0 30px 30px; border-top: none; }
+
+        /* --- PAGE 3: MEDITATION --- */
+        #meditation-page {
+            display: none; height: 100%; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            background: rgba(14, 26, 31, 0.8); backdrop-filter: blur(25px);
+            transition: opacity 1s ease;
+        }
+        .timer-options { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .timer-btn { 
+            background: rgba(255,255,255,0.2); border: 1px solid white; color: white;
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 0.9rem;
+        }
+        .big-circle {
+            width: 300px; height: 300px; border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: 200; background: rgba(255,255,255,0.05);
+        }
+        .breathing-deep { animation: breathe-slow 10s infinite ease-in-out; }
+        @keyframes breathe-slow { 0%, 100% { transform: scale(0.8); opacity: 0.3; } 50% { transform: scale(1.3); opacity: 1; } }
+
+        /* --- PAGE 4: REFLECTION --- */
+        #reflection-page {
+            display: none; height: 100%; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            background: rgba(0, 0, 0, 0.85); z-index: 100;
+        }
+        #reflection-input {
+            background: transparent; border: none; border-bottom: 2px solid white;
+            color: white; font-size: 1.5rem; width: 80%; outline: none; text-align: center;
+            margin-top: 20px; padding: 10px;
+        }
+
+        /* --- FOOTER & BUTTONS --- */
+        footer { position: fixed; bottom: 15px; width: 100%; display: flex; justify-content: center; gap: 15px; pointer-events: none; }
+        footer * { pointer-events: auto; }
+        .footer-center-btn { 
+            background: rgba(255,255,255,0.2); border: 1px solid white; color: white; 
+            padding: 10px 25px; border-radius: 30px; cursor: pointer; 
+            backdrop-filter: blur(5px); font-size: 0.945rem; letter-spacing: 1px; 
+        }
+
+        .bottom-right-btns { position: fixed; bottom: 15px; right: 15px; display: flex; gap: 8px; z-index: 300; }
+        .small-btn { 
+            background: none; border: 1px solid white; color: white; opacity: 0.4; 
+            padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 0.735rem; 
+        }
+        .small-btn:hover { opacity: 0.8; }
+
+        .heart { position: absolute; color: #ff4081; font-size: 20px; user-select: none; pointer-events: none; animation: heart-fly 1.5s linear forwards; z-index: 20; }
+        @keyframes heart-fly { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), -100px) scale(1.5); opacity: 0; } }
+        .dancing { animation: jump 0.6s infinite alternate; }
+        @keyframes jump { from { transform: translateY(0); } to { transform: translateY(-30px); } }
+    </style>
+</head>
+<body>
+
+<div class="full-bg"></div>
+
+<audio id="natureSound" loop src="https://assets.mixkit.co/active_storage/sfx/2458/2458-preview.mp3"></audio>
+<audio id="oceanSound" loop src="https://assets.mixkit.co/active_storage/sfx/1187/1187-preview.mp3"></audio>
+<audio id="bellSound" src="https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3"></audio>
+<audio id="splashSound" src="https://assets.mixkit.co/active_storage/sfx/1204/1204-preview.mp3"></audio>
+
+<div id="landing-page">
+    <h1 style="font-weight: 200;">Welcome to another beautiful day.</h1>
+    <div class="meditation-circle" id="timerBtn" onclick="startMeditation(60, enterTracker)">60s</div>
+    <p style="opacity: 0.8;">Peace is found in the present moment.</p>
+    <div class="anon-trigger" onclick="toggleAnon(true)">Share a secret or thought anonymously</div>
+    
+    <div class="bottom-right-btns">
+        <button class="small-btn" onclick="enterTracker()">Skip</button>
+    </div>
+</div>
+
+<div id="anon-modal">
+    <h2 style="font-weight: 200;">Confession Box</h2>
+    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 20px;">Your message is anonymous. Leave an email if you'd like a response.</p>
+    <form action="https://formspree.io/f/mykzrnzw" method="POST" id="anonForm" style="display:contents;">
+        <input type="email" name="email" class="anon-field" placeholder="Your Email (Optional)">
+        <textarea name="message" class="anon-field" placeholder="Type your secret or random thought here..." required></textarea>
+        <div style="display:flex; gap:15px;">
+            <button type="submit" class="anon-send">Send Secret</button>
+            <button type="button" class="anon-send" style="background:transparent; color:white; border:1px solid white;" onclick="toggleAnon(false)">Close</button>
+        </div>
+    </form>
+</div>
+
+<div id="tracker-page">
+    <div id="wall-container">
+        <div id="gratitude-wall"></div>
+    </div>
+    <div id="quote-container">"Every drop of effort creates a ripple of change."</div>
+    <aside class="sidebar-dial">
+        <label style="font-size: 0.7rem;">ADJUST DAY</label>
+        <input type="number" id="dayDial" value="1" onchange="manualAdjust()">
+    </aside>
+
+    <button class="mascot-btn" id="mascotBtn" onclick="handleCheckIn()">
+        <div class="bubble" id="bubble">I've been waiting for you! Tap me to check in.</div>
+        <div class="cup" id="cupFrame">
+            <div class="water-fill" id="water"></div>
+            <div class="eye l" id="eyeL"></div><div class="eye r" id="eyeR"></div>
+            <div class="mouth" id="mouth"></div>
+        </div>
+        <div style="position: absolute; bottom: -50px; width: 100%; font-size: 1.5rem; font-weight: 300;">Day <span id="displayDay">1</span></div>
+    </button>
+
+    <footer>
+        <button class="footer-center-btn" onclick="openMeditation()">Meditate</button>
+    </footer>
+
+    <div class="bottom-right-btns">
+        <button class="small-btn" onclick="clearWall()">Clear Wall</button>
+        <button class="small-btn" onclick="skipCurrent()">Skip</button>
+    </div>
+</div>
+
+<div id="meditation-page">
+    <h1 id="meditate-header" style="font-weight: 200; margin-bottom: 20px;">Deep Breath...</h1>
+    <div class="timer-options" id="timerOptions">
+        <button class="timer-btn" onclick="setTimer(30)">30s</button>
+        <button class="timer-btn" onclick="setTimer(60)">1m</button>
+        <button class="timer-btn" onclick="setTimer(180)">3m</button>
+        <button class="timer-btn" onclick="setTimer(300)">5m</button>
+    </div>
+    <div class="big-circle" id="deepTimer">Ready</div>
+    <p style="margin-top: 40px; font-weight: 300; letter-spacing: 1px;">Follow the rhythm of the circle.</p>
+</div>
+
+<div id="reflection-page">
+    <h2 style="font-weight: 200;">What is one thing you are grateful for today?</h2>
+    <input type="text" id="reflection-input" placeholder="Type your answer..." onkeydown="if(event.key==='Enter') saveGratitude()">
+    <p style="margin-top: 20px; font-size: 0.8rem; opacity: 0.6;">Press Enter to add to your wall</p>
+</div>
+
+<script>
+    const endearingQuotes = ["I love you for doing that today.", "You are so strong, I'm proud of you.", "Your clarity makes the world brighter.", "Thank you for taking care of yourself today.", "You are doing amazing, beautiful soul.", "Another victory! I love your resolve.", "You are a mountain of strength.", "I am so happy you are here with me.", "You radiate such peace today.", "I knew you could do it! I love your spirit."];
+    const inspoQuotes = ["A clear mind is a powerful mind.", "The mountain does not move, and neither shall your resolve.", "One day at a time is the only way to the peak.", "Stay hydrated. Stay focused. Stay clear.", "Your future self is thanking you right now.", "Patience is the calm after the storm."];
+
+    let currentDay = parseInt(localStorage.getItem('tm_days')) || 1;
+    let lastCheck = localStorage.getItem('tm_date');
+    let gratitudeList = JSON.parse(localStorage.getItem('tm_gratitude')) || [];
+    const today = new Date().toDateString();
+
+    function toggleAnon(show) { document.getElementById('anon-modal').style.display = show ? 'flex' : 'none'; }
+
+    // Start Page Timer
+    function startMeditation(seconds, callback) {
+        const btn = document.getElementById('timerBtn');
+        document.getElementById('natureSound').play();
+        let count = seconds;
+        const timer = setInterval(() => {
+            count--; btn.innerText = count + 's';
+            if (count <= 0) { clearInterval(timer); callback(); }
+        }, 1000);
+        window.currentTimer = timer;
+    }
+
+    function enterTracker() {
+        document.getElementById('natureSound').play();
+        document.querySelectorAll('div[id$="-page"]').forEach(d => d.style.display = 'none');
+        document.getElementById('tracker-page').style.display = 'flex';
+        setTimeout(() => document.getElementById('tracker-page').style.opacity = '1', 50);
+        document.getElementById('displayDay').innerText = currentDay;
+        document.getElementById('dayDial').value = currentDay;
+        renderWall();
+        refreshMascotState();
+    }
+
+    // Meditation Page Logic
+    function openMeditation() {
+        document.getElementById('tracker-page').style.display = 'none';
+        document.getElementById('meditation-page').style.display = 'flex';
+        document.getElementById('timerOptions').style.display = 'flex';
+        document.getElementById('deepTimer').innerText = "Ready";
+        document.getElementById('natureSound').pause();
+    }
+
+    function setTimer(s) { 
+        document.getElementById('timerOptions').style.display = 'none';
+        startDeepSession(s); 
+    }
+
+    function startDeepSession(seconds) {
+        const btn = document.getElementById('deepTimer');
+        const ocean = document.getElementById('oceanSound');
+        btn.classList.add('breathing-deep');
+        ocean.volume = 0.3; ocean.play();
+
+        let count = seconds;
+        btn.innerText = count + 's';
+        const timer = setInterval(() => {
+            count--; btn.innerText = count + 's';
+            if (count <= 0) {
+                clearInterval(timer);
+                document.getElementById('bellSound').play();
+                ocean.pause();
+                btn.classList.remove('breathing-deep');
+                openReflection();
+            }
+        }, 1000);
+        window.currentTimer = timer;
+    }
+
+    function openReflection() {
+        document.getElementById('meditation-page').style.display = 'none';
+        document.getElementById('reflection-page').style.display = 'flex';
+    }
+
+    function saveGratitude() {
+        const val = document.getElementById('reflection-input').value;
+        if(val.trim()) { 
+            gratitudeList.unshift(val); 
+            localStorage.setItem('tm_gratitude', JSON.stringify(gratitudeList)); 
+            document.getElementById('reflection-input').value = "";
+        }
+        enterTracker();
+    }
+
+    function renderWall() {
+        const wall = document.getElementById('gratitude-wall');
+        wall.innerHTML = '';
+        gratitudeList.forEach(text => {
+            const div = document.createElement('div');
+            div.className = 'post-it';
+            div.innerText = text;
+            wall.appendChild(div);
+        });
+    }
+
+    function clearWall() {
+        if(confirm("Clear your Wall of Gratitude?")) {
+            gratitudeList = [];
+            localStorage.setItem('tm_gratitude', JSON.stringify(gratitudeList));
+            renderWall();
+        }
+    }
+
+    function refreshMascotState() {
+        const mouth = document.getElementById('mouth');
+        const bubble = document.getElementById('bubble');
+        const btn = document.getElementById('mascotBtn');
+        const eyeL = document.getElementById('eyeL');
+        const eyeR = document.getElementById('eyeR');
+
+        if (lastCheck === today) {
+            btn.disabled = true;
+            mouth.classList.add('smile-active');
+            eyeL.classList.remove('eyes-closed');
+            eyeR.classList.remove('eyes-closed');
+            bubble.style.display = 'block';
+            bubble.innerText = endearingQuotes[Math.floor(Math.random() * endearingQuotes.length)];
+            document.getElementById('cupFrame').classList.add('dancing');
+        } else {
+            btn.disabled = false;
+            mouth.classList.remove('smile-active');
+            bubble.style.display = 'block';
+            bubble.innerText = "Tap me to confirm your day of clarity.";
+            document.getElementById('cupFrame').classList.remove('dancing');
+        }
+    }
+
+    function handleCheckIn() {
+        if (lastCheck === today) return;
+        document.getElementById('splashSound').play();
+        for(let i=0; i<8; i++) setTimeout(createHeart, i * 100);
+        currentDay++;
+        localStorage.setItem('tm_days', currentDay);
+        localStorage.setItem('tm_date', today);
+        lastCheck = today;
+        document.getElementById('displayDay').innerText = currentDay;
+        setTimeout(refreshMascotState, 400);
+    }
+
+    function createHeart() {
+        const heart = document.createElement('div');
+        heart.innerHTML = '❤'; heart.className = 'heart';
+        const mascot = document.getElementById('mascotBtn');
+        const rect = mascot.getBoundingClientRect();
+        heart.style.left = (rect.left + rect.width / 2) + 'px';
+        heart.style.top = (rect.top + 20) + 'px';
+        heart.style.setProperty('--tx', (Math.random() * 100 - 50) + 'px');
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1500);
+    }
+
+    function manualAdjust() {
+        currentDay = parseInt(document.getElementById('dayDial').value);
+        localStorage.setItem('tm_days', currentDay);
+        document.getElementById('displayDay').innerText = currentDay;
+    }
+
+    function skipCurrent() { clearInterval(window.currentTimer); enterTracker(); }
+
+    document.getElementById('anonForm').onsubmit = () => { alert("Secret sent safely."); toggleAnon(false); };
+</script>
+</body>
+</html>
